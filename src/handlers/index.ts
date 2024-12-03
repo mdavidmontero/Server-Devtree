@@ -65,7 +65,7 @@ export const updateProfile = async (
   res: Response
 ): Promise<any> => {
   try {
-    const { description } = req.body;
+    const { description, links } = req.body;
     const handle = slug(req.body.handle, "");
     const handleExists = await User.findOne({ handle });
     if (handleExists && handleExists.email !== req.user.email) {
@@ -74,6 +74,7 @@ export const updateProfile = async (
     }
     req.user.description = description;
     req.user.handle = handle;
+    req.user.links = links;
     await req.user.save();
     res.send("Perfil actualizado correctamente");
   } catch (e) {
@@ -110,6 +111,47 @@ export const uploadImage = async (
         }
       );
     });
+  } catch (e) {
+    const error = new Error("Hubo un error");
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const getUserByHandle = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<any> => {
+  try {
+    const { handle } = req.params;
+    const user = await User.findOne({ handle }).select(
+      "-_id -__v -email -password"
+    );
+    if (!user) {
+      const error = new Error("El usuario no existe");
+      return res.status(404).json({ error: error.message });
+    }
+    res.json(user);
+  } catch (e) {
+    const error = new Error("Hubo un error");
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const searchByHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<any> => {
+  try {
+    const { handle } = req.body;
+    const userExists = await User.findOne({ handle });
+    if (userExists) {
+      const error = new Error(`${handle} ya esta registrado`);
+      return res.status(409).json({ error: error.message });
+    }
+    res.send(`${handle} está disponible`);
+    console.log();
   } catch (e) {
     const error = new Error("Hubo un error");
     return res.status(500).json({ error: error.message });
